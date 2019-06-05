@@ -1,0 +1,9 @@
+language: go
+
+script:
+  - go build ./...
+  - go test -v
+
+notifications:
+  email: false
+  slack: lirios:fdUqVmPzqPskEL1UBhqapZ0w
