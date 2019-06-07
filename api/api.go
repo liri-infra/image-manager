@@ -24,47 +24,18 @@
 package api
 
 import (
-	"io"
+	"encoding/json"
 	"net/http"
-	"os"
-	"path/filepath"
-
-	"github.com/gorilla/mux"
-	server "github.com/liri-infra/image-manager/server"
 )
 
-func Upload(c server.Context, w http.ResponseWriter, r *http.Request) (int, error) {
-	params := mux.Vars(r)
+func respondWithError(w http.ResponseWriter, code int, message string) {
+	respondWithJson(w, code, map[string]string{"error": message})
+}
 
-	// Create the directory if needed
-	path := filepath.Join(c.Settings().Storage.Repository, params["channel"])
-	err := os.MkdirAll(path, os.ModePerm)
-	if err != nil {
-		return http.StatusInternalServerError, err
-	}
+func respondWithJson(w http.ResponseWriter, code int, payload interface{}) {
+	response, _ := json.Marshal(payload)
 
-	reader, err := r.MultipartReader()
-	if err != nil {
-		return http.StatusInternalServerError, err
-	}
-	for {
-		// Read next part, stop at the end of file
-		part, err := reader.NextPart()
-		if err == io.EOF {
-			break
-		}
-
-		// Skip empty file names
-		if part.FileName() == "" {
-			continue
-		}
-
-		// Write file for the channel specified
-		err = server.WriteFile(filepath.Join(path, part.FileName()), part)
-		if err != nil {
-			return http.StatusInternalServerError, err
-		}
-	}
-
-	return http.StatusOK, nil
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	w.Write(response)
 }

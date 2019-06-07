@@ -47,23 +47,22 @@ func (c ctx) Settings() *server.Settings {
 // Application handler
 type appHandler struct {
 	*ctx
-	handler func(server.Context, http.ResponseWriter, *http.Request) (int, []byte)
+	handler func(server.Context, http.ResponseWriter, *http.Request) (int, error)
 }
 
 func (t appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	code, data := t.handler(t.ctx, w, r)
+	code, err := t.handler(t.ctx, w, r)
 	if code != http.StatusOK {
-		http.Error(w, string(data), code)
+		http.Error(w, err.Error(), code)
 		return
 	}
-	w.Write(data)
 }
 
 // Routes
 var routes = []struct {
 	method  string
 	route   string
-	handler func(server.Context, http.ResponseWriter, *http.Request) (int, []byte)
+	handler func(server.Context, http.ResponseWriter, *http.Request) (int, error)
 }{
 	{"POST", "/api/v1/upload/{channel}", api.Upload},
 }
