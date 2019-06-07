@@ -23,6 +23,10 @@
 
 package server
 
+import (
+	"log"
+)
+
 // Settings contains settings from a configuration file.
 type Settings struct {
 	Server struct {
@@ -36,4 +40,5 @@ type Settings struct {
 // Context interface.
 type Context interface {
 	Settings() *Settings
+	Logger() *log.Logger
 }

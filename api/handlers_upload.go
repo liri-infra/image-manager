@@ -24,6 +24,7 @@
 package api
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -59,8 +60,17 @@ func Upload(c server.Context, w http.ResponseWriter, r *http.Request) (int, erro
 			continue
 		}
 
+		// Destination path
+		dest_path := filepath.Join(path, part.FileName())
+
+		// Do not allow to overwrite existing files
+		if _, err := os.Stat(dest_path); err == nil {
+			c.Logger().Printf("Client tried to overwrite %v\n", part.FileName())
+			return http.StatusPreconditionFailed, fmt.Errorf("File %v already exist", part.FileName())
+		}
+
 		// Write file for the channel specified
-		err = server.WriteFile(filepath.Join(path, part.FileName()), part)
+		err = server.WriteFile(dest_path, part)
 		if err != nil {
 			return http.StatusInternalServerError, err
 		}

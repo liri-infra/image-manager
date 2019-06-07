@@ -25,6 +25,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 
@@ -38,10 +39,15 @@ import (
 // Context of the application
 type ctx struct {
 	settings *server.Settings
+	logger   *log.Logger
 }
 
 func (c ctx) Settings() *server.Settings {
 	return c.settings
+}
+
+func (c ctx) Logger() *log.Logger {
+	return c.logger
 }
 
 // Application handler
@@ -80,8 +86,11 @@ func main() {
 		panic(err)
 	}
 
+	// Logger
+	logger := log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile)
+
 	// Create context
-	appContext := &ctx{&settings}
+	appContext := &ctx{&settings, logger}
 
 	// Router
 	router := mux.NewRouter()
