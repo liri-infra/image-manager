@@ -63,6 +63,7 @@ func Upload(c server.Context, w http.ResponseWriter, r *http.Request) (int, erro
 		}
 
 		// Destination path
+		temp_path := filepath.Join(path, "."+part.FileName()+".part")
 		dest_path := filepath.Join(path, part.FileName())
 
 		// Do not allow to overwrite existing files
@@ -73,9 +74,18 @@ func Upload(c server.Context, w http.ResponseWriter, r *http.Request) (int, erro
 		}
 
 		// Write file for the channel specified
-		err = server.WriteFile(dest_path, part)
-		if err != nil {
+		err = server.WriteFile(temp_path, part)
+		if err == nil {
+			if err = os.Rename(temp_path, dest_path); err != nil {
+				part.Close()
+				os.Remove(temp_path)
+				new_err := fmt.Errorf("Failed to rename %v to %v: %s", filepath.Base(temp_path), filepath.Base(dest_path), err.Error())
+				c.Logger().Println(new_err.Error())
+				return http.StatusInternalServerError, new_err
+			}
+		} else {
 			part.Close()
+			os.Remove(temp_path)
 			new_err := fmt.Errorf("Failed to write %v: %s", dest_path, err.Error())
 			c.Logger().Println(new_err.Error())
 			return http.StatusInternalServerError, new_err
