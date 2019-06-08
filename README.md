@@ -26,13 +26,57 @@ Build and push the Docker container:
 sudo make push
 ```
 
-## Running
+## Server
 
-Edit `config.ini` before running this:
+The server has only one (optional) argument: the configuration file name
+which is `config.ini` by default.
+
+Edit `config.ini` and then type this to run the server:
 
 ```sh
 ./image-server config.ini
 ```
+
+### Configuration
+
+See `config.ini` for an example.
+There is also a users JSON database in `users.json`.
+
+## Client
+
+You can use the `image-server-client` Python program as a client.
+
+It requires:
+
+ * requests
+ * requests-toolbelt
+
+### Create a token
+
+All APIs are protected by a JWT token, before calling any API you must create a token.
+
+You can let the client read the password from a file:
+
+```sh
+./image-server-client create-token myusername password.txt
+```
+
+or from standard input:
+
+```sh
+echo mypassword | ./image-server-client create-token myusername
+```
+
+The client also lets you write the password and terminate with Ctrl+D,
+just run it with:
+
+```sh
+./image-server-client create-token myusername
+```
+
+then type the password and press Ctrl+D.
+
+The `token` is printed to standard output.
 
 ## Licensing
 

@@ -24,8 +24,6 @@
 package main
 
 import (
-	"fmt"
-	"log"
 	"net/http"
 	"os"
 
@@ -33,76 +31,25 @@ import (
 	"github.com/gorilla/mux"
 	api "github.com/liri-infra/image-manager/api"
 	server "github.com/liri-infra/image-manager/server"
-	utils "github.com/liri-infra/image-manager/utils"
-	"gopkg.in/gcfg.v1"
 )
 
-// Context of the application
-type ctx struct {
-	settings *server.Settings
-	logger   *log.Logger
-}
-
-func (c ctx) Settings() *server.Settings {
-	return c.settings
-}
-
-func (c ctx) Logger() *log.Logger {
-	return c.logger
-}
-
-// Application handler
-type appHandler struct {
-	*ctx
-	handler func(server.Context, http.ResponseWriter, *http.Request) (int, error)
-}
-
-func (t appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	code, err := t.handler(t.ctx, w, r)
-	if code != http.StatusOK {
-		http.Error(w, err.Error(), code)
-		return
+func use(handler http.HandlerFunc, middleware ...func(http.HandlerFunc) http.HandlerFunc) http.HandlerFunc {
+	for _, m := range middleware {
+		handler = m(handler)
 	}
-}
-
-// Routes
-var routes = []struct {
-	method  string
-	route   string
-	handler func(server.Context, http.ResponseWriter, *http.Request) (int, error)
-}{
-	{"POST", "/api/v1/upload/{channel}", api.Upload},
+	return handler
 }
 
 func main() {
-	// Load settings
-	var settingsFileName = "./config.ini"
-	if len(os.Args) > 1 {
-		settingsFileName = os.Args[1:][0]
-	}
-	var settings server.Settings
-	fmt.Printf("Loading settings from %s\n", settingsFileName)
-	err := gcfg.ReadFileInto(&settings, settingsFileName)
-	if err != nil {
-		panic(err)
-	}
-
-	// Expand user
-	settings.Storage.Repository = utils.ExpandUser(settings.Storage.Repository)
-
-	// Logger
-	logger := log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile)
-
-	// Create context
-	appContext := &ctx{&settings, logger}
+	// Create state
+	state := server.GetAppState()
 
 	// Router
 	router := mux.NewRouter()
-
-	for _, detail := range routes {
-		router.Handle(detail.route, appHandler{appContext, detail.handler}).Methods(detail.method)
-	}
+	router.HandleFunc("/jwt/signin", api.SignInHandler).Methods("POST")
+	router.HandleFunc("/jwt/refresh", api.RefreshTokenHandler).Methods("POST")
+	router.HandleFunc("/api/v1/upload/{channel}", use(api.UploadHandler, api.AuthenticationMiddleware)).Methods("POST")
 
 	loggedRouter := handlers.LoggingHandler(os.Stdout, router)
-	http.ListenAndServe(settings.Server.Address, handlers.CompressHandler(loggedRouter))
+	http.ListenAndServe(state.Settings().Server.Address, handlers.CompressHandler(loggedRouter))
 }

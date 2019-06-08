@@ -34,21 +34,23 @@ import (
 	server "github.com/liri-infra/image-manager/server"
 )
 
-func Upload(c server.Context, w http.ResponseWriter, r *http.Request) (int, error) {
+func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
 	// Create the directory if needed
-	path := filepath.Join(c.Settings().Storage.Repository, params["channel"])
+	path := filepath.Join(server.GetAppState().Settings().Storage.Repository, params["channel"])
 	err := os.MkdirAll(path, os.ModePerm)
 	if err != nil {
-		return http.StatusInternalServerError, err
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	// Read multipart without writing to intermediate files
 	reader, err := r.MultipartReader()
 	if err != nil {
-		c.Logger().Println(err.Error())
-		return http.StatusInternalServerError, err
+		server.GetAppState().Logger().Println(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	for {
 		// Read next part, stop at the end of file
@@ -69,8 +71,9 @@ func Upload(c server.Context, w http.ResponseWriter, r *http.Request) (int, erro
 		// Do not allow to overwrite existing files
 		if _, err := os.Stat(dest_path); err == nil {
 			part.Close()
-			c.Logger().Printf("Client tried to overwrite %v\n", part.FileName())
-			return http.StatusBadRequest, fmt.Errorf("File %v already exist", part.FileName())
+			server.GetAppState().Logger().Printf("Client tried to overwrite %v\n", part.FileName())
+			http.Error(w, fmt.Sprintf("File %v already exist", part.FileName()), http.StatusBadRequest)
+			return
 		}
 
 		// Write file for the channel specified
@@ -79,18 +82,17 @@ func Upload(c server.Context, w http.ResponseWriter, r *http.Request) (int, erro
 			if err = os.Rename(temp_path, dest_path); err != nil {
 				part.Close()
 				os.Remove(temp_path)
-				new_err := fmt.Errorf("Failed to rename %v to %v: %s", filepath.Base(temp_path), filepath.Base(dest_path), err.Error())
-				c.Logger().Println(new_err.Error())
-				return http.StatusInternalServerError, new_err
+				msg := fmt.Sprintf("Failed to rename %v to %v: %s", filepath.Base(temp_path), filepath.Base(dest_path), err.Error())
+				server.GetAppState().Logger().Println(msg)
+				http.Error(w, msg, http.StatusInternalServerError)
 			}
 		} else {
 			part.Close()
 			os.Remove(temp_path)
-			new_err := fmt.Errorf("Failed to write %v: %s", dest_path, err.Error())
-			c.Logger().Println(new_err.Error())
-			return http.StatusInternalServerError, new_err
+			msg := fmt.Sprintf("Failed to write %v: %s", dest_path, err.Error())
+			server.GetAppState().Logger().Println(msg)
+			http.Error(w, msg, http.StatusInternalServerError)
+			return
 		}
 	}
-
-	return http.StatusOK, nil
 }

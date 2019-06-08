@@ -28,14 +28,14 @@ import (
 	"net/http"
 )
 
-func respondWithError(w http.ResponseWriter, code int, message string) {
-	respondWithJson(w, code, map[string]string{"error": message})
+func RespondWithError(w http.ResponseWriter, message string) {
+	RespondWithJson(w, map[string]string{"error": message})
 }
 
-func respondWithJson(w http.ResponseWriter, code int, payload interface{}) {
+func RespondWithJson(w http.ResponseWriter, payload interface{}) {
 	response, _ := json.Marshal(payload)
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
+	w.WriteHeader(http.StatusOK)
 	w.Write(response)
 }

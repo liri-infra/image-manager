@@ -51,6 +51,22 @@ class NamedFilePart:
         return self._handler
 
 
+def create_token(args):
+    url = urljoin(args.api_url, '/jwt/signin')
+    password = args.password_file.read().strip()
+
+    headers = {'Content-Type': 'application/json'}
+
+    data = {'username': args.username, 'password': password}
+    body = json.dumps(data)
+
+    response = requests.post(url, headers=headers, data=body)
+    if response.status_code != 200:
+        raise ApiError(response)
+
+    print(response.json())
+
+
 def upload_command(args):
     url = urljoin(args.api_url, '/api/v1/upload/' + args.channel)
     files = (
@@ -63,10 +79,15 @@ def upload_command(args):
         upload_files[file_part.object_name] = (file_part.filename, file_part.handler, file_part.mimetype)
     m = MultipartEncoder(fields=upload_files)
 
+    headers = {
+        'Authorization': 'Bearer ' + args.token,
+        'Content-Type': m.content_type
+    }
+
     retries = MAX_RETRIES
     while retries > 0:
         try:
-            response = requests.post(url, headers={'Content-Type': m.content_type}, data=m)
+            response = requests.post(url, headers=headers, data=m)
             if response.status_code != 200:
                 raise ApiError(response)
         except requests.exceptions.Timeout:
@@ -88,8 +109,15 @@ if __name__ == '__main__':
                                        description='valid subcommands',
                                        help='additional help')
 
+    token_parser = subparsers.add_parser('create-token', help='Authenticate with the server')
+    token_parser.add_argument('--api-url', required=True, help='remote image manager URL')
+    token_parser.add_argument('username', help='User name')
+    token_parser.add_argument('password_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin, help='User name')
+    token_parser.set_defaults(func=create_token)
+
     upload_parser = subparsers.add_parser('upload', help='Upload image')
     upload_parser.add_argument('--api-url', required=True, help='remote image manager URL')
+    upload_parser.add_argument('--token', required=True, help='authentication token')
     upload_parser.add_argument('--channel', required=True, help='channel name')
     upload_parser.add_argument('--image', required=True, help='image file name')
     upload_parser.add_argument('--checksum', required=True, help='sha256 checksum')
