@@ -44,11 +44,10 @@ func Upload(c server.Context, w http.ResponseWriter, r *http.Request) (int, erro
 		return http.StatusInternalServerError, err
 	}
 
-	var status_code int = http.StatusOK
-	var status_message error = nil
-
+	// Read multipart without writing to intermediate files
 	reader, err := r.MultipartReader()
 	if err != nil {
+		c.Logger().Println(err.Error())
 		return http.StatusInternalServerError, err
 	}
 	for {
@@ -63,33 +62,25 @@ func Upload(c server.Context, w http.ResponseWriter, r *http.Request) (int, erro
 			continue
 		}
 
-		// Don't continue if we had an error reading the previous part
-		if status_code != http.StatusOK {
-			continue
-		}
-
 		// Destination path
 		dest_path := filepath.Join(path, part.FileName())
 
 		// Do not allow to overwrite existing files
 		if _, err := os.Stat(dest_path); err == nil {
+			part.Close()
 			c.Logger().Printf("Client tried to overwrite %v\n", part.FileName())
-
-			// Keep reading the next part to avoid interrupting the connection
-			// with the client but make sure one all parts are read we exit
-			// with an error
-			status_code = http.StatusPreconditionFailed
-			status_message = fmt.Errorf("File %v already exist", part.FileName())
-			return status_code, status_message
-			//continue
+			return http.StatusBadRequest, fmt.Errorf("File %v already exist", part.FileName())
 		}
 
 		// Write file for the channel specified
 		err = server.WriteFile(dest_path, part)
 		if err != nil {
-			return http.StatusInternalServerError, err
+			part.Close()
+			new_err := fmt.Errorf("Failed to write %v: %s", dest_path, err.Error())
+			c.Logger().Println(new_err.Error())
+			return http.StatusInternalServerError, new_err
 		}
 	}
 
-	return status_code, status_message
+	return http.StatusOK, nil
 }
