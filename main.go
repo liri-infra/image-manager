@@ -33,6 +33,7 @@ import (
 	"github.com/gorilla/mux"
 	api "github.com/liri-infra/image-manager/api"
 	server "github.com/liri-infra/image-manager/server"
+	utils "github.com/liri-infra/image-manager/utils"
 	"gopkg.in/gcfg.v1"
 )
 
@@ -85,6 +86,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	// Expand user
+	settings.Storage.Repository = utils.ExpandUser(settings.Storage.Repository)
 
 	// Logger
 	logger := log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile)
