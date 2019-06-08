@@ -33,7 +33,7 @@ class NamedFilePart:
     def __init__(self, object_name, filename, mimetype='application/octet-stream'):
         self.object_name = object_name
         self.filename = os.path.basename(filename)
-        self._local_filename = filename
+        self._local_filename = os.path.expanduser(filename)
         self.mimetype = mimetype
         self._size = None
         self._handler = None
