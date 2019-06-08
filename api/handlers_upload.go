@@ -80,7 +80,8 @@ func Upload(c server.Context, w http.ResponseWriter, r *http.Request) (int, erro
 			// with an error
 			status_code = http.StatusPreconditionFailed
 			status_message = fmt.Errorf("File %v already exist", part.FileName())
-			continue
+			return status_code, status_message
+			//continue
 		}
 
 		// Write file for the channel specified

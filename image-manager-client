@@ -8,6 +8,8 @@ import json
 import requests
 import sys
 
+MAX_RETRIES = 5
+
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
@@ -61,10 +63,16 @@ def upload_command(args):
         upload_files[file_part.object_name] = (file_part.filename, file_part.handler, file_part.mimetype)
     m = MultipartEncoder(fields=upload_files)
 
-    response = requests.post(url, headers={'Content-Type': m.content_type}, data=m)
-    #response = requests.post(url, files=upload_files)
-    if response.status_code != 200:
-        raise ApiError(response)
+    retries = MAX_RETRIES
+    while retries > 0:
+        try:
+            response = requests.post(url, headers={'Content-Type': m.content_type}, data=m)
+            if response.status_code != 200:
+                raise ApiError(response)
+        except requests.exceptions.Timeout:
+            retries -= 1
+        else:
+            return
 
 
 if __name__ == '__main__':
@@ -99,8 +107,9 @@ if __name__ == '__main__':
         args.func(args)
     except ApiError as e:
         eprint(str(e))
-    except requests.exceptions.ConnectionError as e:
-        eprint(str(e))
+    except requests.exceptions.RequestException as e:
+        print(e.args[0].args[1])
+        exit(1)
     except:
         ei = sys.exc_info()
         eprint("Unexpected %s exception in %s: %s" % (ei[0].__name__, args.subparser_name, ei[1]))
