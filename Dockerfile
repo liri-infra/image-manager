@@ -10,4 +10,4 @@ RUN mkdir -p /etc/liri
 WORKDIR /app
 COPY --from=builder /image-manager /app/
 EXPOSE 8080
-CMD ["/app/image-manager", "/etc/liri/image-manager.ini"]
+CMD ["/app/image-manager", "/etc/liri/image-manager/config.ini"]
