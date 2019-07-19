@@ -30,6 +30,7 @@ import (
 	"log"
 	"os"
 	"sync"
+	"time"
 
 	utils "github.com/liri-infra/image-manager/utils"
 	"gopkg.in/gcfg.v1"
@@ -102,6 +103,13 @@ func GetAppState() *AppState {
 		if err != nil {
 			panic(fmt.Errorf("Failed to unmarshal users database from %v: %s", settings.Server.UsersDatabase, err.Error()))
 		}
+
+		// Remove old images
+		cleanTimer := time.NewTimer(3600)
+		go func() {
+			<-cleanTimer.C
+			utils.RemoveOldImages(settings.Storage.Repository)
+		}()
 
 		// Create the instance
 		instance = &AppState{&settings, logger, users}

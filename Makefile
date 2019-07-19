@@ -2,7 +2,7 @@ DOCKER_IMAGE=liriorg/image-manager
 DOCKER_VERSION=latest
 
 all:
-	@go build
+	@go build -v
 
 clean:
 	@rm -f image-manager
