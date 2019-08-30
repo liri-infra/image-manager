@@ -105,10 +105,11 @@ func GetAppState() *AppState {
 		}
 
 		// Remove old images
-		cleanTimer := time.NewTimer(3600)
+		ticker := time.NewTicker(3600)
 		go func() {
-			<-cleanTimer.C
-			utils.RemoveOldImages(settings.Storage.Repository)
+			for _ = range ticker.C {
+				utils.RemoveOldImages(settings.Storage.Repository)
+			}
 		}()
 
 		// Create the instance
