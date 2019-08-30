@@ -60,9 +60,16 @@ def create_token(args):
     data = {'username': args.username, 'password': password}
     body = json.dumps(data)
 
-    response = requests.post(url, headers=headers, data=body)
-    if response.status_code != 200:
-        raise ApiError(response)
+    retries = args.network_retries
+    while retries > 0:
+        try:
+            response = requests.post(url, headers=headers, data=body)
+            if response.status_code != 200:
+                raise ApiError(response)
+        except requests.exceptions.Timeout:
+            retries -= 1
+        else:
+            return
 
     print(response.json())
 
@@ -84,7 +91,7 @@ def upload_command(args):
         'Content-Type': m.content_type
     }
 
-    retries = MAX_RETRIES
+    retries = args.network_retries
     while retries > 0:
         try:
             response = requests.post(url, headers=headers, data=m)
@@ -111,12 +118,18 @@ if __name__ == '__main__':
 
     token_parser = subparsers.add_parser('create-token', help='Authenticate with the server')
     token_parser.add_argument('--api-url', required=True, help='remote image manager URL')
+    token_parser.add_argument('--network-retries', default=MAX_RETRIES, metavar='N',
+                              help='specifies how many times the operation ' \
+                                   'should be retried upon error')
     token_parser.add_argument('username', help='User name')
     token_parser.add_argument('password_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin, help='User name')
     token_parser.set_defaults(func=create_token)
 
     upload_parser = subparsers.add_parser('upload', help='Upload image')
     upload_parser.add_argument('--api-url', required=True, help='remote image manager URL')
+    upload_parser.add_argument('--network-retries', default=MAX_RETRIES, metavar='N',
+                               help='specifies how many times the operation ' \
+                                    'should be retried upon error')
     upload_parser.add_argument('--token', required=True, help='authentication token')
     upload_parser.add_argument('--channel', required=True, help='channel name')
     upload_parser.add_argument('--image', required=True, help='image file name')

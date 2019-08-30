@@ -141,7 +141,7 @@ func RefreshTokenHandler(w http.ResponseWriter, r *http.Request) {
 	RespondWithJson(w, tokenString)
 }
 
-func AuthenticationMiddleware(handler http.HandlerFunc) http.HandlerFunc {
+func AuthenticationMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Get the authorization header and remove what we don't need
 		tokenString := strings.ReplaceAll(r.Header.Get("Authorization"), "Bearer ", "")
@@ -172,6 +172,6 @@ func AuthenticationMiddleware(handler http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		handler.ServeHTTP(w, r)
+		next.ServeHTTP(w, r)
 	})
 }

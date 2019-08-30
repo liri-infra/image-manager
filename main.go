@@ -33,22 +33,22 @@ import (
 	server "github.com/liri-infra/image-manager/server"
 )
 
-func use(handler http.HandlerFunc, middleware ...func(http.HandlerFunc) http.HandlerFunc) http.HandlerFunc {
-	for _, m := range middleware {
-		handler = m(handler)
-	}
-	return handler
-}
-
 func main() {
 	// Create state
 	state := server.GetAppState()
 
 	// Router
 	router := mux.NewRouter()
-	router.HandleFunc("/jwt/signin", api.SignInHandler).Methods("POST")
-	router.HandleFunc("/jwt/refresh", api.RefreshTokenHandler).Methods("POST")
-	router.HandleFunc("/api/v1/upload/{channel}", use(api.UploadHandler, api.AuthenticationMiddleware)).Methods("POST")
+
+	// JWT Router
+	jwtRouter := router.PathPrefix("/jwt").Subrouter()
+	jwtRouter.HandleFunc("/signin", api.SignInHandler).Methods("POST")
+	jwtRouter.HandleFunc("/refresh", api.RefreshTokenHandler).Methods("POST")
+
+	// API Router
+	apiRouter := router.PathPrefix("/api/v1").Subrouter()
+	apiRouter.HandleFunc("/upload/{channel}", api.UploadHandler).Methods("POST")
+	apiRouter.Use(api.AuthenticationMiddleware)
 
 	loggedRouter := handlers.LoggingHandler(os.Stdout, router)
 	http.ListenAndServe(state.Settings().Server.Address, handlers.CompressHandler(loggedRouter))
