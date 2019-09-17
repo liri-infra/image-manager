@@ -69,9 +69,8 @@ def create_token(args):
         except requests.exceptions.Timeout:
             retries -= 1
         else:
+            print(response.json())
             return
-
-    print(response.json())
 
 
 def upload_command(args):
