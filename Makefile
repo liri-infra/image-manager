@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2019 Pier Luigi Fiorini <pierluigi.fiorini@gmail.com>
+#
+# SPDX-License-Identifier: CC0-1.0
+
 DOCKER_IMAGE=liriorg/image-manager
 DOCKER_VERSION=latest
 

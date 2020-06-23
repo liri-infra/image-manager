@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2019 Pier Luigi Fiorini <pierluigi.fiorini@gmail.com>
+#
+# SPDX-License-Identifier: CC0-1.0
+
 FROM golang:latest AS builder
 ADD . /go/src/github.com/liri-infra/image-manager
 WORKDIR /go/src/github.com/liri-infra/image-manager

@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2019 Pier Luigi Fiorini <pierluigi.fiorini@gmail.com>
+
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 image-manager
 =============
 
