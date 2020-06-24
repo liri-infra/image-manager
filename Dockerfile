@@ -2,16 +2,20 @@
 #
 # SPDX-License-Identifier: CC0-1.0
 
-FROM golang:latest AS builder
-ADD . /go/src/github.com/liri-infra/image-manager
-WORKDIR /go/src/github.com/liri-infra/image-manager
-RUN GO111MODULE=on GOARCH=amd64 CGO_ENABLED=0 GOOS=linux go build -o /image-manager
+FROM golang:alpine AS build
+RUN mkdir /source
+COPY . /source/
+WORKDIR /source
+RUN set -ex && \
+    apk --no-cache add ca-certificates build-base make git && \
+    go mod download && \
+    make && \
+    strip bin/image-manager && \
+    mkdir /build && \
+    cp bin/image-manager /build/
 
 FROM alpine
-MAINTAINER Pier Luigi Fiorini <pierluigi.fiorini@gmail.com>
-RUN apk --no-cache add ca-certificates
-RUN mkdir -p /etc/liri
-WORKDIR /app
-COPY --from=builder /image-manager /app/
-EXPOSE 8080
-CMD ["/app/image-manager", "/etc/liri/image-manager/config.ini"]
+COPY --from=build /build/ostree-upload /usr/bin/ostree-upload
+RUN apk --no-cache add libc6-compat ostree
+ENTRYPOINT ["/usr/bin/image-manager"]
+CMD ["--help"]

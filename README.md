@@ -12,77 +12,162 @@ image-manager
 [![Build Status](https://travis-ci.org/liri-infra/image-manager.svg?branch=develop)](https://travis-ci.org/liri-infra/image-manager)
 [![GitHub issues](https://img.shields.io/github/issues/liri-infra/image-manager.svg)](https://github.com/liri-infra/image-manager/issues)
 
-image-manager serves an image repository.
-CI jobs build images and send them to image-manager, which archives them in
-the correct spot.
+`image-manager` serves an image repository.
 
-image-manager is written with Go.
+A build server sends ISO images and checksum files to image-manager, which archives them in
+the correct spot based on their channel.
+
+`image-manager` provides three subcommands:
+
+  * **gentoken**: Generate an API token (more on that later).
+  * **server**: An HTTP server that lets you upload files.
+  * **client**: An HTTP client that uploads files.
+
+## Dependencies
+
+You need Go installed.
+
+On Fedora:
+
+```sh
+sudo dnf install -y golang
+```
+
+Download all the Go dependencies:
+  
+```sh
+go mod download
+```
 
 ## Build
 
-Build the server:
+Build with:
 
 ```sh
 make
 ```
 
-Build and push the Docker container:
+## Install
+
+Install with:
 
 ```sh
-sudo make push
+make install
+```
+
+The default prefix is `/usr/local` but you can specify another one:
+
+```sh
+make install PREFIX=/usr
+```
+
+And you can also relocate the binaries, this is particularly
+useful when building packages:
+
+```
+...
+
+%install
+make install DESTDIR=%{buildroot} PREFIX=%{_prefix}
+
+...
+```
+
+## Configuration file
+
+Format:
+
+```yaml
+storage: <PATH TO STORAGE LOCATION>
+channels:
+  - name: <NAME>
+    path: <PATH RELATIVE TO STORAGE LOCATION>
+    cleanup: <BOOLEAN>
+  - ...
+tokens:
+  - token: <TOKEN>
+    created: <TIMESTAMP>
+  - ...
+```
+
+## Token
+
+All requests to the API require a token. You can generate one with:
+
+```sh
+image-manager gentoken [--config=<FILENAME>]
+```
+
+This command will generate a new token and store it in the YAML file `<FILENAME>`.
+The file name is `image-manager.yaml` by default (that is when `--config` is not passed).
+
+If you instead wants to use Docker type something like:
+
+```sh
+docker run --rm -it \
+  -v $(pwd)/image-manager.yaml:/etc/image-manager.yaml \
+  liriorg/image-manager \
+  gentoken -c /etc/image-manager.yaml
 ```
 
 ## Server
 
-The server has only one (optional) argument: the configuration file name
-which is `config.ini` by default.
-
-Edit `config.ini` and then type this to run the server:
+Start the server with:
 
 ```sh
-./image-server config.ini
+image-manager server [--config=<FILENAME>] [--path=<PATH>] [--verbose] --address=[<ADDR>]
 ```
 
-### Configuration
+This command will start the HTTP server.
 
-See `config.ini` for an example.
-There is also a users JSON database in `users.json`.
+The tokens are validated against the configuration file, see the previous
+chapter for more information.
+
+Replace `<PATH>` with the path to your archive.
+
+Replace `<ADDR>` with the host name and port to bind, by default it's ":8080"
+which means port `8080` on `localhost`.
+
+Pass `--verbose` to print more messages.
+
+If you instead wants to use Docker type something like:
+
+```sh
+docker run --rm -it \
+  -v $(pwd)/image-manager.yaml:/etc/image-manager.yaml \
+  -v $(pwd)/archive:/var/archive \
+  -p 8080:8080 \
+  liriorg/image-manager \
+  receive -c /etc/image-manager.yaml -p /var/archive
+```
 
 ## Client
 
-You can use the `image-server-client` Python program as a client.
-
-It requires:
-
- * requests
- * requests-toolbelt
-
-### Create a token
-
-All APIs are protected by a JWT token, before calling any API you must create a token.
-
-You can let the client read the password from a file:
+Start the client with:
 
 ```sh
-./image-server-client create-token myusername password.txt
+image-manager client [--token=<TOKEN>] [--address=<ADDR>] [--channel=<CHANNEL>] [[--file=<FILE>], ...] [--verbose]
 ```
 
-or from standard input:
+This command will upload one or more files to the `<ADDR>` server, using the `<TOKEN>` API token.
+
+Replace `<CHANNEL>` with the channel you want to upload to.
+
+Replace `<FILE>` with the file to be uploaded.
+You can pass `--file=<FILE>` multiple times.
+
+Pass `--verbose` to print more messages.
+
+If you instead wants to use Docker type something like:
 
 ```sh
-echo mypassword | ./image-server-client create-token myusername
+docker run --rm -it \
+  liriorg/image-manager \
+  client --token=<TOKEN> \
+    --channel=<CHANNEL> \
+    --file=<ISO_FILE> \
+    --file=<CHECKSUM_FILE>
 ```
-
-The client also lets you write the password and terminate with Ctrl+D,
-just run it with:
-
-```sh
-./image-server-client create-token myusername
-```
-
-then type the password and press Ctrl+D.
-
-The `token` is printed to standard output.
 
 ## Licensing
 

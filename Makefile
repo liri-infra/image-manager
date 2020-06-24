@@ -1,22 +1,39 @@
-# SPDX-FileCopyrightText: 2019 Pier Luigi Fiorini <pierluigi.fiorini@gmail.com>
+# SPDX-FileCopyrightText: 2020 Pier Luigi Fiorini <pierluigi.fiorini@gmail.com>
 #
 # SPDX-License-Identifier: CC0-1.0
 
-DOCKER_IMAGE=liriorg/image-manager
-DOCKER_VERSION=latest
+TAGS :=
+LDFLAGS := -w -s
+GOFLAGS :=
 
-all:
-	@go build -v
+DESTDIR :=
+PREFIX := /usr/local
+BINDIR := $(CURDIR)/bin
+BINNAME ?= image-manager
 
+GO_SRC := $(shell find . -type f -name "*.go")
+
+.PHONY: all
+all: build
+
+.PHONY: build
+build: $(BINDIR)/$(BINNAME)
+
+$(BINDIR)/$(BINNAME): $(GO_SRC)
+	(cd cmd && GO111MODULE=on go build $(GOFLAGS) -tags '$(TAGS)' -ldflags '$(LDFLAGS)' -o $@)
+
+.PHONY: install
+install: $(BINDIR)/$(BINNAME)
+	install -Dm755 $< $(DESTDIR)$(PREFIX)/bin/$(BINNAME)
+
+.PHONY: clean
 clean:
-	@rm -f image-manager
+	@rm -rf $(BINDIR)
 
-format:
-	@gofmt -w .
-
+.PHONY: test
 test:
-	@go test -v -cover ./...
+	GO111MODULE=on go test $(GOFLAGS) -run . ./...
 
-push:
-	@docker build -t $(DOCKER_IMAGE) .
-	@docker push $(DOCKER_IMAGE):$(DOCKER_VERSION)
+.PHONY: format
+format:
+	GO111MODULE=on gofmt -w .
