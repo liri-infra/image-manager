@@ -9,8 +9,8 @@ image-manager
 
 [![License](https://img.shields.io/badge/license-AGPLv3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0.en.html)
 [![GitHub release](https://img.shields.io/github/release/liri-infra/image-manager.svg)](https://github.com/liri-infra/image-manager)
-[![Build Status](https://travis-ci.org/liri-infra/image-manager.svg?branch=develop)](https://travis-ci.org/liri-infra/image-manager)
 [![GitHub issues](https://img.shields.io/github/issues/liri-infra/image-manager.svg)](https://github.com/liri-infra/image-manager/issues)
+[![CI](https://github.com/liri-infra/image-manager/workflows/CI/badge.svg?branch=develop)](https://github.com/liri-infra/image-manager/actions?query=workflow%3ACI)
 
 `image-manager` serves an image repository.
 
