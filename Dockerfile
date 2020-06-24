@@ -15,7 +15,7 @@ RUN set -ex && \
     cp bin/image-manager /build/
 
 FROM alpine
-COPY --from=build /build/ostree-upload /usr/bin/ostree-upload
+COPY --from=build /build/image-manager /usr/bin/image-manager
 RUN apk --no-cache add libc6-compat ostree
 ENTRYPOINT ["/usr/bin/image-manager"]
 CMD ["--help"]
