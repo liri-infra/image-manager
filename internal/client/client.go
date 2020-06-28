@@ -15,8 +15,10 @@ func StartClient(url, token string, channel string, paths []string) error {
 	}
 
 	// Upload
-	if err := client.Upload(channel, paths); err != nil {
-		return err
+	for _, path := range paths {
+		if err := client.UploadSingle(channel, path); err != nil {
+			return err
+		}
 	}
 
 	logger.Info("Done!")

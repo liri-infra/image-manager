@@ -106,6 +106,61 @@ func (c *Client) do(request *http.Request, v interface{}) (*http.Response, error
 	return response, nil
 }
 
+// UploadSingle uploads file path to channel.
+func (c *Client) UploadSingle(channel, path string) error {
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	body := new(bytes.Buffer)
+	writer := multipart.NewWriter(body)
+	defer writer.Close()
+
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return err
+	}
+
+	part, err := writer.CreateFormFile("file", fileInfo.Name())
+	if err != nil {
+		return err
+	}
+
+	if _, err := io.Copy(part, file); err != nil {
+		return err
+	}
+
+	if err := writer.Close(); err != nil {
+		return err
+	}
+
+	rel := &url.URL{Path: fmt.Sprintf("/api/v1/upload/%s", channel)}
+	u := c.url.ResolveReference(rel)
+
+	request, err := http.NewRequest("PUT", u.String(), body)
+	if err != nil {
+		return err
+	}
+
+	request.Header.Set("Content-Type", writer.FormDataContentType())
+	request.Header.Set("Accept", "application/json")
+	request.Header.Set("User-Agent", c.userAgent)
+	request.Header.Set("Authorization", fmt.Sprintf("BEARER %s", c.token))
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return err
+	}
+
+	if response.StatusCode != http.StatusOK {
+		return fmt.Errorf("HTTP error: %s", response.Status)
+	}
+
+	return nil
+}
+
 // Upload uploads multiple files listed in paths at once to channel.
 func (c *Client) Upload(channel string, paths []string) error {
 	r, w := io.Pipe()
