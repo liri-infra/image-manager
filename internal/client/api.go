@@ -25,7 +25,7 @@ import (
 
 // Client is used to connect to the server.
 type Client struct {
-	url        *url.URL
+	endpoint   string
 	userAgent  string
 	httpClient *http.Client
 	token      string
@@ -33,7 +33,7 @@ type Client struct {
 
 // NewClient creates a new client connecting to the specified endpoint.
 func NewClient(endpoint, token string) (*Client, error) {
-	u, err := url.Parse(endpoint)
+	_, err := url.Parse(endpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -43,12 +43,14 @@ func NewClient(endpoint, token string) (*Client, error) {
 	}
 	httpClient := &http.Client{Transport: transport, Timeout: 60 * time.Minute}
 
-	return &Client{u, "image-manager", httpClient, token}, nil
+	return &Client{endpoint, "image-manager", httpClient, token}, nil
 }
 
 func (c *Client) newRequest(method, path string, body interface{}) (*http.Request, error) {
-	rel := &url.URL{Path: path}
-	u := c.url.ResolveReference(rel)
+	u, err := url.Parse(fmt.Sprintf("%s%s", c.endpoint, path))
+	if err != nil {
+		return nil, err
+	}
 
 	var buf io.ReadWriter
 	if body != nil {
@@ -136,8 +138,10 @@ func (c *Client) UploadSingle(channel, path string) error {
 		return err
 	}
 
-	rel := &url.URL{Path: fmt.Sprintf("/api/v1/upload/%s", channel)}
-	u := c.url.ResolveReference(rel)
+	u, err := url.Parse(fmt.Sprintf("%s/api/v1/upload/%s", c.endpoint, channel))
+	if err != nil {
+		return err
+	}
 
 	request, err := http.NewRequest("PUT", u.String(), body)
 	if err != nil {
@@ -214,8 +218,10 @@ func (c *Client) Upload(channel string, paths []string) error {
 		}
 	}
 
-	rel := &url.URL{Path: fmt.Sprintf("/api/v1/upload/%s", channel)}
-	u := c.url.ResolveReference(rel)
+	u, err := url.Parse(fmt.Sprintf("%s/api/v1/upload/%s", c.endpoint, channel))
+	if err != nil {
+		return err
+	}
 
 	request, err := http.NewRequest("PUT", u.String(), r)
 	if err != nil {
