@@ -106,14 +106,14 @@ func (c *Client) do(request *http.Request, v interface{}) (*http.Response, error
 	return response, nil
 }
 
-// Upload uploads an object
+// Upload uploads multiple files listed in paths at once to channel.
 func (c *Client) Upload(channel string, paths []string) error {
 	r, w := io.Pipe()
 	writer := multipart.NewWriter(w)
 
 	errChan := make(chan error)
 
-	go func() {
+	f := func() {
 		defer func() {
 			writer.Close()
 			w.Close()
@@ -157,7 +157,7 @@ func (c *Client) Upload(channel string, paths []string) error {
 				return
 			}
 		}
-	}()
+	}
 
 	rel := &url.URL{Path: fmt.Sprintf("/api/v1/upload/%s", channel)}
 	u := c.url.ResolveReference(rel)
@@ -171,6 +171,8 @@ func (c *Client) Upload(channel string, paths []string) error {
 	request.Header.Set("Accept", "application/json")
 	request.Header.Set("User-Agent", c.userAgent)
 	request.Header.Set("Authorization", fmt.Sprintf("BEARER %s", c.token))
+
+	go f()
 
 	if _, err := c.httpClient.Do(request); err != nil {
 		return err
