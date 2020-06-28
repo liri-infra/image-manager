@@ -137,11 +137,12 @@ func serverCmd() *cobra.Command {
 
 func clientCmd() *cobra.Command {
 	var (
-		url     string
-		token   string
-		channel string
-		paths   []string
-		verbose bool
+		url              string
+		token            string
+		channel          string
+		isoFileName      string
+		checksumFileName string
+		verbose          bool
 	)
 
 	var cmd = &cobra.Command{
@@ -165,10 +166,17 @@ func clientCmd() *cobra.Command {
 				return
 			}
 
-			if len(paths) == 0 {
-				logger.Fatal("Please specify at least one file to upload")
+			if isoFileName == "" {
+				logger.Fatal("ISO file is mandatory")
 				return
 			}
+
+			if checksumFileName == "" {
+				logger.Fatal("Checksum file is mandatory")
+				return
+			}
+
+			paths := []string{isoFileName, checksumFileName}
 
 			if err := client.StartClient(url, token, channel, paths); err != nil {
 				logger.Fatal(err)
@@ -180,7 +188,8 @@ func clientCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&url, "address", "a", "http://localhost:8080", "host name and port of the server")
 	cmd.Flags().StringVarP(&token, "token", "t", "", "token to authenticate with the server")
 	cmd.Flags().StringVarP(&channel, "channel", "c", "", "image channel name")
-	cmd.Flags().StringSliceVarP(&paths, "file", "f", []string{}, "file to upload")
+	cmd.Flags().StringVarP(&isoFileName, "iso", "", "", "ISO file to upload")
+	cmd.Flags().StringVarP(&checksumFileName, "checksum", "", "", "Checksum file to upload")
 	cmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "more messages during the build")
 
 	return cmd
