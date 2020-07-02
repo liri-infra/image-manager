@@ -118,6 +118,7 @@ func serverCmd() *cobra.Command {
 					server.RemoveOldImages(config.StorageDir, config.Channels)
 				}
 			}()
+			defer ticker.Stop()
 
 			appState := &server.AppState{Config: config}
 			if err := server.StartServer(bindAddress, appState); err != nil {
