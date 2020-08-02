@@ -112,6 +112,7 @@ func serverCmd() *cobra.Command {
 			}
 
 			// Remove old images
+			server.RemoveOldImages(config.StorageDir, config.Channels)
 			ticker := time.NewTicker(60 * 60 * time.Second)
 			go func() {
 				for _ = range ticker.C {
